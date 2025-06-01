@@ -1,10 +1,27 @@
-# TODOS
+## Analysis Tasks
+- [x] Clone repository successfully
+- [ ] Understand project structure and technology stack
+- [ ] Identify progress tracking system
+- [ ] Identify avatar management system
+- [ ] Install dependencies and run development server
+- [ ] Test current functionality to reproduce issues → ## Analysis Tasks
+- [x] Clone repository successfully
+- [x] Understand project structure and technology stack
+- [x] Identify progress tracking system
+- [x] Identify avatar management system
+- [x] Install dependencies and run development server
+- [ ] Test current functionality to reproduce issues
 
-## Giai đoạn 1: Skeleton & Flow MVP
-- [ ] Tạo cấu trúc thư mục chuẩn cho dự án (components, hooks, contexts, pages, services, utils)
-- [ ] Xây dựng routes/onboarding flow: Register > Avatar > Journey > Map > Chat > Flashcard
-- [ ] Tạo file/folder mẫu cho từng module chính (Auth, Avatar, Journey, Map, Chat, Flashcard)
-- [ ] Mock dữ liệu journeys, areas, chat scripts, flashcards ở local file JSON tạm thời
-- [ ] Hiển thị từng bước giao diện user đầy đủ, truyền props/hard-code (chưa kết nối thật API)
-- [ ] Lưu ý cấu trúc responsive và chia nhỏ component logic
-- [ ] Đảm bảo có thể demo toàn bộ flow chính cho người dùng mới
+## Issues Found:
+
+### Issue 1: Flash Card Progress Update
+**Problem**: FlashcardPage doesn't use the progress.ts utilities properly
+- Currently updating progress only locally in component state
+- Not using `updateLocationProgress()` function from progress.ts
+- Progress not persisted when navigating back to journey
+
+### Issue 2: Avatar Sync Issue  
+**Problem**: Avatar management inconsistent across pages
+- AvatarPage saves to localStorage with key 'avatarState' 
+- FlashcardPage expects user avatar from localStorage with key 'user'
+- Avatar data structure mismatch between pages
