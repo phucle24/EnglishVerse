@@ -1,154 +1,289 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useNavigate } from 'react-router-dom';
 
-const AVATAR_IMAGES = [
-  '/avatars/avatar1.png',
-  '/avatars/avatar2.png',
-  '/avatars/avatar3.png',
-  'https://ugc.same-assets.com/7zP4_sZbv34rMijHgssmeEzsEDxkK-cw.jpeg',
-  'https://ugc.same-assets.com/b6ST6vvuXzWsLus3E4djQVIYD7z70o1M.jpeg',
-  'https://ugc.same-assets.com/wVWA6F0W1Bq9YOiFxA7tQBC68FDb7ddw.jpeg',
-  'https://ugc.same-assets.com/CDFkbAQAhmvkBzjgol89YK5kwQvnPSyR.jpeg',
-  'https://ugc.same-assets.com/4jsoOxPmfXlG994nbRPnQl0yD77JoL6a.jpeg',
-  'https://ugc.same-assets.com/bFNbdFuKwdx09btdiXIAPcomA85JbVkn.jpeg',
-];
-const HAIR_STYLES = [
-  { id: 1, label: 'Ngắn', value: 'short' },
-  { id: 2, label: 'Dài', value: 'long' },
-  { id: 3, label: 'Búi', value: 'bun' },
-];
-const HAIR_COLORS = [
-  { id: 1, label: 'Đen', value: '#222' },
-  { id: 2, label: 'Nâu', value: '#7b493b' },
-  { id: 3, label: 'Vàng', value: '#fae97f' },
-];
-const OUTFITS = [
-  { id: 1, label: 'Áo phông', value: 'shirt' },
-  { id: 2, label: 'Áo vest', value: 'vest' },
-];
-const GENDERS = [
-  { id: 1, label: 'Nam', value: 'male' },
-  { id: 2, label: 'Nữ', value: 'female' },
-  { id: 3, label: 'Khác', value: 'neutral' },
+// Types
+interface AvatarOption {
+  id: string;
+  name: string;
+  icon: string;
+  preview: string;
+}
+
+interface AvatarState {
+  face: string;
+  hair: string;
+  clothes: string;
+  gender: 'male' | 'female';
+  customImage?: string;
+}
+
+// Mock data
+const FACES: AvatarOption[] = [
+  { id: 'face1', name: 'Round Face', icon: '👶', preview: '/avatars/faces/round.png' },
+  { id: 'face2', name: 'Oval Face', icon: '👨', preview: '/avatars/faces/oval.png' },
+  { id: 'face3', name: 'Square Face', icon: '👩', preview: '/avatars/faces/square.png' },
 ];
 
-export default function AvatarPage() {
-  const [avatar, setAvatar] = useState({
+const HAIRSTYLES: AvatarOption[] = [
+  { id: 'hair1', name: 'Short Hair', icon: '💇‍♂️', preview: '/avatars/hair/short.png' },
+  { id: 'hair2', name: 'Long Hair', icon: '💇‍♀️', preview: '/avatars/hair/long.png' },
+  { id: 'hair3', name: 'Curly Hair', icon: '👨‍🦱', preview: '/avatars/hair/curly.png' },
+];
+
+const CLOTHES: AvatarOption[] = [
+  { id: 'clothes1', name: 'Casual', icon: '👕', preview: '/avatars/clothes/casual.png' },
+  { id: 'clothes2', name: 'Formal', icon: '👔', preview: '/avatars/clothes/formal.png' },
+  { id: 'clothes3', name: 'Sport', icon: '🎽', preview: '/avatars/clothes/sport.png' },
+];
+
+const AvatarPage: React.FC = () => {
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarState, setAvatarState] = useState<AvatarState>({
+    face: 'face1',
+    hair: 'hair1',
+    clothes: 'clothes1',
     gender: 'male',
-    hairStyle: 'short',
-    hairColor: '#222',
-    outfit: 'shirt',
-    img: '',
   });
-  const handlePick = (key: string, value: string) => {
-    setAvatar({ ...avatar, [key]: value });
+  const [activeTab, setActiveTab] = useState('face');
+  const [isCustomImage, setIsCustomImage] = useState(false);
+
+  // Handle option selection
+  const handleOptionSelect = (category: keyof AvatarState, value: string) => {
+    setAvatarState(prev => ({
+      ...prev,
+      [category]: value
+    }));
   };
-  const handleSave = () => {
-    localStorage.setItem('avatar', JSON.stringify(avatar));
-    // update field avatar cho user đang login (nếu có)
-    const userRaw = localStorage.getItem('user');
-    if (userRaw) {
-      const user = JSON.parse(userRaw);
-      user.avatar = avatar.img;
-      localStorage.setItem('user', JSON.stringify(user));
+
+  // Handle gender toggle
+  const handleGenderToggle = () => {
+    setAvatarState(prev => ({
+      ...prev,
+      gender: prev.gender === 'male' ? 'female' : 'male'
+    }));
+  };
+
+  // Handle image upload
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setAvatarState(prev => ({
+          ...prev,
+          customImage: e.target?.result as string
+        }));
+        setIsCustomImage(true);
+      };
+      reader.readAsDataURL(file);
     }
-    window.location.href = '/journeys';
+  };
+
+  // Handle remove custom image
+  const handleRemoveCustomImage = () => {
+    setAvatarState(prev => ({
+      ...prev,
+      customImage: undefined
+    }));
+    setIsCustomImage(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Handle save
+  const handleSave = () => {
+    // Save to localStorage
+    localStorage.setItem('avatarState', JSON.stringify(avatarState));
+    
+    // Trigger confetti
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+    
+    // Navigate to next page
+    navigate('/journeys');
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-white p-2 sm:p-4">
-      <h2 className="text-2xl font-semibold mb-4">Tạo avatar đại diện</h2>
-      <div className="flex flex-col md:flex-row gap-8 items-center w-full max-w-2xl">
-        {/* Preview avatar */}
-        <div className="flex flex-col items-center">
-          <div className="w-28 h-28 rounded-full bg-gray-200 flex items-center justify-center mb-2 border-4 border-white shadow overflow-hidden">
-            {/* Hiển thị img nếu đã chọn, ngược lại hiển thị emoji */}
-            {avatar.img ? (
-              <img src={avatar.img} alt="Avatar" className="object-cover w-28 h-28" />
-            ) : (
-              <span className="text-5xl">{avatar.gender === 'female' ? '👧' : avatar.gender === 'male' ? '👦' : '🧑'}</span>
-            )}
-          </div>
-          <div className="text-gray-500">Tóc: {avatar.hairStyle}, Màu: <span style={{ color: avatar.hairColor }}>{avatar.hairColor}</span></div>
-          <div className="text-gray-500 mb-2">Style: {avatar.outfit}</div>
-        </div>
-        <div className="flex flex-col gap-3 w-full">
-          <div>
-            <p className="font-semibold mb-1">Chọn hình avatar</p>
-            <div className="flex flex-nowrap overflow-x-auto gap-2 pb-2 md:grid md:grid-cols-5 md:gap-3">
-              {AVATAR_IMAGES.map((url, i) => (
-                <button
-                  type="button"
-                  key={url}
-                  className={`w-14 h-14 rounded-full border-2 flex items-center justify-center ${avatar.img===url?'border-blue-500':'border-gray-200'} bg-white flex-shrink-0`}
-                  onClick={()=>handlePick('img', url)}
-                  aria-label={`Chọn avatar hình ${i+1}`}
-                >
-                  <img src={url} alt="avatar" className="object-cover w-12 h-12 rounded-full" />
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="font-semibold mb-1">Giới tính</p>
-            <div className="flex gap-2">
-              {GENDERS.map(g => (
-                <button
-                  key={g.value}
-                  className={`px-3 py-1 rounded ${avatar.gender === g.value ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                  onClick={() => handlePick('gender', g.value)}
-                  type="button"
-                >{g.label}</button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="font-semibold mb-1">Kiểu tóc</p>
-            <div className="flex gap-2">
-              {HAIR_STYLES.map(h => (
-                <button
-                  key={h.value}
-                  className={`px-3 py-1 rounded ${avatar.hairStyle === h.value ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                  onClick={() => handlePick('hairStyle', h.value)}
-                  type="button"
-                >{h.label}</button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="font-semibold mb-1">Màu tóc</p>
-            <div className="flex gap-2">
-              {HAIR_COLORS.map(c => (
-                <button
-                  key={c.value}
-                  className={`w-8 h-8 rounded-full border-2 ${avatar.hairColor === c.value ? 'border-blue-500' : 'border-gray-300'}`}
-                  style={{ background: c.value }}
-                  onClick={() => handlePick('hairColor', c.value)}
-                  type="button"
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-blue-100 dark:from-gray-900 dark:to-gray-800 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Welcome Message */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white mb-2">
+            Create Your Avatar
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300">
+            Customize your character to start your learning journey
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:max-w-5xl mx-auto">
+          {/* Avatar Preview */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative aspect-square bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden"
+          >
+            <div className="absolute inset-0 flex items-center justify-center">
+              {avatarState.customImage ? (
+                <img
+                  src={avatarState.customImage}
+                  alt="Custom Avatar"
+                  className="w-full h-full object-contain"
                 />
-              ))}
+              ) : (
+                <img
+                  src={`/avatars/preview/${avatarState.gender}/${avatarState.face}.png`}
+                  alt="Avatar Preview"
+                  className="w-full h-full object-contain"
+                />
+              )}
             </div>
-          </div>
-          <div>
-            <p className="font-semibold mb-1">Trang phục</p>
-            <div className="flex gap-2">
-              {OUTFITS.map(o => (
+
+            {/* Image Upload Controls */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                accept="image/*"
+                className="hidden"
+              />
+              {!isCustomImage ? (
                 <button
-                  key={o.value}
-                  className={`px-3 py-1 rounded ${avatar.outfit === o.value ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                  onClick={() => handlePick('outfit', o.value)}
-                  type="button"
-                >{o.label}</button>
-              ))}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Upload Image
+                </button>
+              ) : (
+                <button
+                  onClick={handleRemoveCustomImage}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                >
+                  Remove Image
+                </button>
+              )}
             </div>
+          </motion.div>
+
+          {/* Customization Panel */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid grid-cols-3 gap-2 mb-6">
+                <TabsTrigger value="face">Face</TabsTrigger>
+                <TabsTrigger value="hair">Hair</TabsTrigger>
+                <TabsTrigger value="clothes">Clothes</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="face">
+                <div className="grid grid-cols-3 gap-4">
+                  {FACES.map(face => (
+                    <motion.button
+                      key={face.id}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleOptionSelect('face', face.id)}
+                      disabled={isCustomImage}
+                      className={`p-4 rounded-xl border-2 transition-colors ${
+                        avatarState.face === face.id
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-200 dark:border-gray-700'
+                      } ${isCustomImage ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className="text-4xl mb-2">{face.icon}</div>
+                      <div className="text-sm font-medium">{face.name}</div>
+                    </motion.button>
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="hair">
+                <div className="grid grid-cols-3 gap-4">
+                  {HAIRSTYLES.map(hair => (
+                    <motion.button
+                      key={hair.id}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleOptionSelect('hair', hair.id)}
+                      disabled={isCustomImage}
+                      className={`p-4 rounded-xl border-2 transition-colors ${
+                        avatarState.hair === hair.id
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-200 dark:border-gray-700'
+                      } ${isCustomImage ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className="text-4xl mb-2">{hair.icon}</div>
+                      <div className="text-sm font-medium">{hair.name}</div>
+                    </motion.button>
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="clothes">
+                <div className="grid grid-cols-3 gap-4">
+                  {CLOTHES.map(clothes => (
+                    <motion.button
+                      key={clothes.id}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleOptionSelect('clothes', clothes.id)}
+                      disabled={isCustomImage}
+                      className={`p-4 rounded-xl border-2 transition-colors ${
+                        avatarState.clothes === clothes.id
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-200 dark:border-gray-700'
+                      } ${isCustomImage ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className="text-4xl mb-2">{clothes.icon}</div>
+                      <div className="text-sm font-medium">{clothes.name}</div>
+                    </motion.button>
+                  ))}
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            {/* Gender Control */}
+            <div className="mt-6">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Gender</span>
+                <button
+                  onClick={handleGenderToggle}
+                  disabled={isCustomImage}
+                  className={`p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${
+                    isCustomImage ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {avatarState.gender === 'male' ? '👨' : '👩'}
+                </button>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleSave}
+              className="w-full mt-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors"
+            >
+              Save & Continue
+            </motion.button>
           </div>
         </div>
       </div>
-      <button
-        className="mt-8 px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow w-full max-w-xs"
-        onClick={handleSave}
-      >
-        Lưu avatar & tiếp tục
-      </button>
     </div>
   );
-}
+};
+
+export default AvatarPage;
