@@ -146,7 +146,7 @@ export default function App() {
           <Route path="/avatar" element={<AvatarPage />} />
           <Route path="/journeys" element={<JourneySelectionPage />} />
           <Route path="/world-map" element={<WorldMapPage />} />
-          <Route path="/location/:locationId" element={<ChatPage />} />
+          <Route path="/chat/:locationId" element={<ChatPage />} />
           <Route path="/flashcards/:locationId" element={<FlashcardPage />} />
 
           {/* Admin Routes */}

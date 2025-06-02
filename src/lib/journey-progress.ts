@@ -9,7 +9,6 @@ export interface LocationProgress {
   locationId: string;
   completedLessons: number;
   totalLessons: number;
-  isUnlocked: boolean;
 }
 
 // Helper functions
@@ -33,8 +32,7 @@ export const getLocationProgress = (locationId: string): LocationProgress => {
   return {
     locationId,
     completedLessons: 0,
-    totalLessons: 0,
-    isUnlocked: false
+    totalLessons: 0
   };
 };
 
@@ -49,21 +47,14 @@ export const updateJourneyProgress = (journeyId: string, locationId: string): vo
 export const updateLocationProgress = (
   locationId: string,
   completedLessons: number,
-  totalLessons: number,
-  isUnlocked: boolean
+  totalLessons: number
 ): void => {
   const progress: LocationProgress = {
     locationId,
     completedLessons,
-    totalLessons,
-    isUnlocked
+    totalLessons
   };
   localStorage.setItem(`location_${locationId}_progress`, JSON.stringify(progress));
-};
-
-export const isLocationUnlocked = (locationId: string): boolean => {
-  const progress = getLocationProgress(locationId);
-  return progress.isUnlocked;
 };
 
 export const getCompletionPercentage = (completed: number, total: number): number => {

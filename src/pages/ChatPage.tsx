@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, ChevronRight, CheckCircle, RotateCcw } from "lucide-react";
@@ -21,43 +21,94 @@ const BOT = {
   avatar: "https://ugc.same-assets.com/CDFkbAQAhmvkBzjgol89YK5kwQvnPSyR.jpeg",
 };
 
-// Các script gốc: text A là user nhập vai, B là bot. format chỉ lưu TEXT, chuyển thành chatList dưới đây
-const SCRIPTS = [
-  {
-    id: "restaurant-basic",
-    name: "Nhà hàng - Cơ bản",
-    chat: [
-      { role: "A", text: "Xin chào! Tôi muốn đặt bàn cho 2 người." },
-      { role: "B", text: "Xin chào, bạn muốn ngồi ở khu vực nào?" },
-      { role: "A", text: "Gần cửa sổ được không?" },
-      { role: "B", text: "Dạ được ạ, mời bạn theo tôi." },
-      { role: "A", text: "Xin chào! Tôi muốn đặt bàn cho 2 người." },
-      { role: "B", text: "Xin chào, bạn muốn ngồi ở khu vực nào?" },
-      { role: "A", text: "Gần cửa sổ được không?" },
-      { role: "B", text: "Dạ được ạ, mời bạn theo tôi." },
-      { role: "A", text: "Xin chào! Tôi muốn đặt bàn cho 2 người." },
-      { role: "B", text: "Xin chào, bạn muốn ngồi ở khu vực nào?" },
-      { role: "A", text: "Gần cửa sổ được không?" },
-      { role: "B", text: "Dạ được ạ, mời bạn theo tôi." },
+// Location data
+const LOCATIONS = {
+  restaurant: {
+    name: "Nhà hàng",
+    description: "Giao tiếp trong nhà hàng và đặt món",
+    scripts: [
+      {
+        id: "restaurant-basic",
+        name: "Nhà hàng - Cơ bản",
+        chat: [
+          { role: "A", text: "Xin chào! Tôi muốn đặt bàn cho 2 người." },
+          { role: "B", text: "Xin chào, bạn muốn ngồi ở khu vực nào?" },
+          { role: "A", text: "Gần cửa sổ được không?" },
+          { role: "B", text: "Dạ được ạ, mời bạn theo tôi." },
+        ],
+      },
+      {
+        id: "restaurant-friendly",
+        name: "Nhà hàng - Thân thiện",
+        chat: [
+          { role: "A", text: "Chào buổi tối! Có bàn trống cho hai người không bạn?" },
+          { role: "B", text: "Dĩ nhiên rồi! Bạn muốn ngồi gần cửa sổ hay quầy bar?" },
+          { role: "A", text: "Mình thích gần cửa sổ hơn!" },
+          { role: "B", text: "Ok, mời bạn theo mình!" },
+        ],
+      },
     ],
   },
-  {
-    id: "restaurant-friendly",
-    name: "Nhà hàng - Thân thiện",
-    chat: [
-      { role: "A", text: "Chào buổi tối! Có bàn trống cho hai người không bạn?" },
-      { role: "B", text: "Dĩ nhiên rồi! Bạn muốn ngồi gần cửa sổ hay quầy bar?" },
-      { role: "A", text: "Mình thích gần cửa sổ hơn!" },
-      { role: "B", text: "Ok, mời bạn theo mình!" },
+  airport: {
+    name: "Sân bay",
+    description: "Học tiếng Anh trong môi trường sân bay quốc tế",
+    scripts: [
+      {
+        id: "airport-checkin",
+        name: "Check-in tại sân bay",
+        chat: [
+          { role: "A", text: "Good morning! I'd like to check in for my flight." },
+          { role: "B", text: "Good morning! May I see your passport and ticket, please?" },
+          { role: "A", text: "Here you are. I'd prefer a window seat if possible." },
+          { role: "B", text: "I'll check for you. Would you like to check any bags?" },
+        ],
+      },
+      {
+        id: "airport-security",
+        name: "An ninh sân bay",
+        chat: [
+          { role: "A", text: "Excuse me, where is the security checkpoint?" },
+          { role: "B", text: "It's just around the corner. Please have your boarding pass ready." },
+          { role: "A", text: "Do I need to take off my shoes?" },
+          { role: "B", text: "Yes, and please remove any metal items from your pockets." },
+        ],
+      },
     ],
   },
-];
+  hotel: {
+    name: "Khách sạn",
+    description: "Đặt phòng và giao tiếp với nhân viên khách sạn",
+    scripts: [
+      {
+        id: "hotel-checkin",
+        name: "Check-in khách sạn",
+        chat: [
+          { role: "A", text: "Hi, I have a reservation under the name John Smith." },
+          { role: "B", text: "Welcome! Let me check that for you. How many nights will you be staying?" },
+          { role: "A", text: "Three nights. Do you have a room with a city view?" },
+          { role: "B", text: "Yes, we do. I'll upgrade you to a city view room at no extra charge." },
+        ],
+      },
+      {
+        id: "hotel-service",
+        name: "Dịch vụ khách sạn",
+        chat: [
+          { role: "A", text: "Hello, I'd like to request room service." },
+          { role: "B", text: "Of course! What would you like to order?" },
+          { role: "A", text: "Could I get breakfast delivered to my room tomorrow morning?" },
+          { role: "B", text: "Certainly! What time would you prefer?" },
+        ],
+      },
+    ],
+  },
+};
 
 const STATUS_ICONS = { sent: "📤", seen: "✅" };
 const MSG_SOUND = "https://cdn.pixabay.com/audio/2022/09/27/audio_125bfaea48.mp3";
 
 export default function ChatPage() {
   const navigate = useNavigate();
+  const { locationId } = useParams<{ locationId: string }>();
   const user = getUser() || { name: "Bạn An", avatar: "https://ugc.same-assets.com/7zP4_sZbv34rMijHgssmeEzsEDxkK-cw.jpeg" };
   const [scriptIdx, setScriptIdx] = useState(0);
   const [visible, setVisible] = useState(1);
@@ -72,6 +123,14 @@ export default function ChatPage() {
   const audioRef = useRef<HTMLAudioElement|null>(null);
   const autoPlayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messageSoundRef = useRef<HTMLAudioElement|null>(null);
+
+  const currentLocation = locationId ? LOCATIONS[locationId as keyof typeof LOCATIONS] : null;
+  const currentScript = currentLocation?.scripts[scriptIdx];
+
+  // Reset chat state when location or script changes
+  useEffect(() => {
+    resetChat();
+  }, [locationId, scriptIdx]);
 
   // Reset chat state
   const resetChat = () => {
@@ -103,11 +162,11 @@ export default function ChatPage() {
   };
 
   // Tạo chat có avatar/tên dựa trên role A = user, B = bot
-  const script = SCRIPTS[scriptIdx].chat.map(m =>
+  const script = currentScript?.chat.map(m =>
     m.role === 'A'
       ? { ...m, name: user.name, avatar: user.avatar }
       : { ...m, name: BOT.name, avatar: BOT.avatar }
-  );
+  ) || [];
 
   useEffect(() => {
     if (containerRef.current) {
@@ -135,10 +194,6 @@ export default function ChatPage() {
   }, [visible, scriptIdx, speed]);
 
   useEffect(() => {
-    resetChat();
-  }, [scriptIdx]);
-
-  useEffect(() => {
     if (vibe && window.navigator.vibrate) {
       window.navigator.vibrate(50);
     }
@@ -160,7 +215,7 @@ export default function ChatPage() {
   }, [autoPlay, visible, script.length, speed]);
 
   const handleComplete = () => {
-    navigate('/flashcards');
+    navigate(`/flashcards/${locationId}`);
   };
 
   // Render message block with improved typing animation
@@ -206,6 +261,17 @@ export default function ChatPage() {
     return null;
   };
 
+  if (!currentLocation) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-white">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Location not found</h1>
+          <Button onClick={() => navigate('/world-map')}>Back to World Map</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-yellow-50 to-white p-2 sm:p-4">
       <audio ref={audioRef} src={MSG_SOUND} preload="auto" />
@@ -219,6 +285,12 @@ export default function ChatPage() {
 
         {/* Chat Container */}
         <div className="h-[600px] flex flex-col">
+          {/* Header */}
+          <div className="p-4 bg-white border-b">
+            <h2 className="text-lg font-bold text-gray-800">{currentLocation.name}</h2>
+            <p className="text-sm text-gray-600">{currentLocation.description}</p>
+          </div>
+
           {/* Progress Bar */}
           <div className="p-4 bg-white border-b">
             <Progress value={(visible / script.length) * 100} />
@@ -233,7 +305,7 @@ export default function ChatPage() {
                   value={scriptIdx}
                   onChange={e=>setScriptIdx(Number(e.target.value))}
                 >
-                  {SCRIPTS.map((opt, i) => (
+                  {currentLocation.scripts.map((opt, i) => (
                     <option value={i} key={opt.id}>{opt.name}</option>
                   ))}
                 </select>
@@ -247,7 +319,7 @@ export default function ChatPage() {
                   <option value={5}>Chậm</option>
                 </select>
               </div>
-              <div className="flex items-center gap-2">
+             <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
