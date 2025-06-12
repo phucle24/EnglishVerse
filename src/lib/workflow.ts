@@ -1,3 +1,5 @@
+import { updateSimpleLocationProgress } from './progress';
+
 interface WorkflowState {
   avatar: {
     face: string;
@@ -89,6 +91,10 @@ export const updateFlashcardProgress = (locationId: string, rememberedCards: num
     rememberedCards
   };
   saveWorkflowState(state);
+  
+  // Also update the simple progress system for world map
+  const overallProgress = getLocationProgress(locationId);
+  updateSimpleLocationProgress(locationId, overallProgress);
 };
 
 // Check if location is completed

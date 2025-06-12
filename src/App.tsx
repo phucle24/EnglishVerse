@@ -3,11 +3,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import AvatarPage from './pages/AvatarPage';
 import JourneySelectionPage from './pages/JourneySelectionPage';
 import WorldMapPage from './pages/WorldMapPage';
 import ChatPage from './pages/ChatPage';
 import FlashcardPage from './pages/FlashcardPage';
+import TestPage from './pages/TestPage';
+import DashboardPage from './pages/DashboardPage';
 import AdminLayout from './pages/admin/layout';
 import JourneysPage from './pages/admin/journeys/page';
 import AreasPage from './pages/admin/areas/page';
@@ -141,13 +144,18 @@ export default function App() {
         <Routes>
           {/* Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           
           {/* Main App Routes */}
           <Route path="/avatar" element={<AvatarPage />} />
           <Route path="/journeys" element={<JourneySelectionPage />} />
           <Route path="/world-map" element={<WorldMapPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/chat/:locationId" element={<ChatPage />} />
           <Route path="/flashcards/:locationId" element={<FlashcardPage />} />
+          
+          {/* Test Route */}
+          <Route path="/test" element={<TestPage />} />
 
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminLayout />}>

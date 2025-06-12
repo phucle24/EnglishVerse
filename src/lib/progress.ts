@@ -6,12 +6,25 @@ interface UserProgress {
   badges: string[];
 }
 
-interface JourneyProgress {
+interface SimpleJourneyProgress {
   [locationId: string]: number;
 }
 
+export interface JourneyProgress {
+  journeyId: string;
+  completedLocations: string[];
+  totalLocations: number;
+}
+
+export interface LocationProgress {
+  locationId: string;
+  completedLessons: number;
+  totalLessons: number;
+  isUnlocked: boolean;
+}
+
 const USER_PROGRESS_KEY = 'userProgress';
-const JOURNEY_PROGRESS_KEY = 'journeyProgress';
+const SIMPLE_JOURNEY_PROGRESS_KEY = 'journeyProgress';
 
 // Get user progress
 export const getUserProgress = (): UserProgress => {
@@ -43,10 +56,10 @@ export const saveUserProgress = (progress: UserProgress) => {
   }
 };
 
-// Get journey progress
-export const getJourneyProgress = (): JourneyProgress => {
+// Get simple journey progress (for WorldMapPage)
+export const getSimpleJourneyProgress = (): SimpleJourneyProgress => {
   try {
-    const stored = localStorage.getItem(JOURNEY_PROGRESS_KEY);
+    const stored = localStorage.getItem(SIMPLE_JOURNEY_PROGRESS_KEY);
     if (stored) {
       return JSON.parse(stored);
     }
@@ -56,20 +69,20 @@ export const getJourneyProgress = (): JourneyProgress => {
   return {};
 };
 
-// Save journey progress
-export const saveJourneyProgress = (progress: JourneyProgress) => {
+// Save simple journey progress
+export const saveSimpleJourneyProgress = (progress: SimpleJourneyProgress) => {
   try {
-    localStorage.setItem(JOURNEY_PROGRESS_KEY, JSON.stringify(progress));
+    localStorage.setItem(SIMPLE_JOURNEY_PROGRESS_KEY, JSON.stringify(progress));
   } catch (error) {
     console.error('Error saving journey progress:', error);
   }
 };
 
-// Update location progress
-export const updateLocationProgress = (locationId: string, progress: number) => {
-  const journeyProgress = getJourneyProgress();
+// Update location progress for WorldMapPage
+export const updateSimpleLocationProgress = (locationId: string, progress: number) => {
+  const journeyProgress = getSimpleJourneyProgress();
   journeyProgress[locationId] = progress;
-  saveJourneyProgress(journeyProgress);
+  saveSimpleJourneyProgress(journeyProgress);
 
   // If progress is 100%, add to completed locations
   if (progress === 100) {
@@ -81,10 +94,10 @@ export const updateLocationProgress = (locationId: string, progress: number) => 
   }
 };
 
-// Check if location is unlocked
-export const isLocationUnlocked = (locationId: string, requiredLevel: number): boolean => {
+// Check if location is unlocked (simplified version)
+export const isSimpleLocationUnlocked = (locationId: string, requiredLevel: number): boolean => {
   const userProgress = getUserProgress();
-  const journeyProgress = getJourneyProgress();
+  const journeyProgress = getSimpleJourneyProgress();
   
   // If location is completed, it's unlocked
   if (userProgress.completedLocations.includes(locationId)) {
@@ -108,21 +121,7 @@ export const isLocationUnlocked = (locationId: string, requiredLevel: number): b
   return journeyProgress[previousLocation] === 100;
 };
 
-// Types
-export interface JourneyProgress {
-  journeyId: string;
-  completedLocations: string[];
-  totalLocations: number;
-}
-
-export interface LocationProgress {
-  locationId: string;
-  completedLessons: number;
-  totalLessons: number;
-  isUnlocked: boolean;
-}
-
-// Helper functions
+// Helper functions for detailed journey tracking
 export const getJourneyProgress = (journeyId: string): JourneyProgress => {
   const savedProgress = localStorage.getItem(`journey_${journeyId}_progress`);
   if (savedProgress) {

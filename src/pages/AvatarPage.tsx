@@ -3,6 +3,9 @@ import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
+import { saveAvatarState } from '@/lib/avatar';
+import { updateAvatar } from '@/lib/workflow';
+import { updateUserAvatar } from '@/lib/user';
 
 // Types
 interface AvatarOption {
@@ -97,8 +100,20 @@ const AvatarPage: React.FC = () => {
 
   // Handle save
   const handleSave = () => {
-    // Save to localStorage
-    localStorage.setItem('avatarState', JSON.stringify(avatarState));
+    // Save to all avatar systems
+    saveAvatarState(avatarState);
+    
+    // Update workflow state
+    updateAvatar(avatarState);
+    
+    // Update user avatar if custom image is uploaded
+    if (avatarState.customImage) {
+      updateUserAvatar(avatarState.customImage);
+    } else {
+      // Generate avatar URL for standard avatar
+      const avatarUrl = `/avatars/preview/${avatarState.gender}/${avatarState.face}.png`;
+      updateUserAvatar(avatarUrl);
+    }
     
     // Trigger confetti
     confetti({

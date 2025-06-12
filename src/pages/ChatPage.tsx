@@ -2,20 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, ChevronRight, CheckCircle, RotateCcw } from "lucide-react";
+import { Play, Pause, ChevronRight, CheckCircle, RotateCcw, X } from "lucide-react";
+import { getUser } from "@/lib/user";
+import Header from "@/components/Header";
+import { motion } from "framer-motion";
 
-// Helper lấy info user từ localStorage
-function getUser() {
-  try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (!user || !user.name) return null;
-    const avatar = user.avatar || 'https://ugc.same-assets.com/7zP4_sZbv34rMijHgssmeEzsEDxkK-cw.jpeg';
-    return { ...user, avatar };
-  } catch {
-    return null;
-  }
-}
-
+// Bot configuration
 const BOT = {
   name: "Nhân viên",
   avatar: "https://ugc.same-assets.com/CDFkbAQAhmvkBzjgol89YK5kwQvnPSyR.jpeg",
@@ -118,6 +110,7 @@ export default function ChatPage() {
   const [status, setStatus] = useState<"sent" | "seen">("sent");
   const [vibe, setVibe] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
+  const [showCompletionPopup, setShowCompletionPopup] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement|null>(null);
@@ -215,7 +208,86 @@ export default function ChatPage() {
   }, [autoPlay, visible, script.length, speed]);
 
   const handleComplete = () => {
+    setShowCompletionPopup(true);
+  };
+
+  const handleContinueToFlashcards = () => {
+    setShowCompletionPopup(false);
     navigate(`/flashcards/${locationId}`);
+  };
+
+  const handleReturnToWorldMap = () => {
+    setShowCompletionPopup(false);
+    navigate('/world-map');
+  };
+
+  // Completion Popup Component
+  const CompletionPopup = () => {
+    if (!showCompletionPopup) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          className="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden"
+        >
+          {/* Header */}
+          <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-6 text-center relative">
+            <button
+              onClick={() => setShowCompletionPopup(false)}
+              className="absolute top-3 right-3 text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <motion.div 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              className="text-4xl mb-2"
+            >
+              🎉
+            </motion.div>
+            <h2 className="text-xl font-bold text-white mb-1">Chúc mừng!</h2>
+            <p className="text-green-100 text-sm">Bạn đã hoàn thành cuộc trò chuyện</p>
+          </div>
+
+          {/* Content */}
+          <div className="p-6 text-center">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              Bạn có tiếp tục chinh phục FlashCard không?
+            </h3>
+            <p className="text-gray-600 text-sm mb-6">
+              Tiếp tục học với FlashCard để củng cố từ vựng vừa học!
+            </p>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleContinueToFlashcards}
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-4 px-4 rounded-xl font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-lg min-h-[56px] flex items-center justify-center gap-2"
+              >
+                <span>🚀</span>
+                <span>Tiếp tục với FlashCard</span>
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleReturnToWorldMap}
+                className="w-full bg-gray-100 text-gray-700 py-4 px-4 rounded-xl font-medium hover:bg-gray-200 transition-all duration-300 min-h-[56px] flex items-center justify-center gap-2"
+              >
+                <span>🗺️</span>
+                <span>Quay lại World Map</span>
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
   };
 
   // Render message block with improved typing animation
@@ -273,127 +345,140 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-yellow-50 to-white p-2 sm:p-4">
-      <audio ref={audioRef} src={MSG_SOUND} preload="auto" />
-      <audio ref={messageSoundRef} src="/sounds/message.mp3" preload="auto" />
-      {/* Phone Frame */}
-      <div className="w-full max-w-md bg-white rounded-[40px] shadow-xl overflow-hidden border-8 border-gray-800 relative">
-        {/* Phone Notch */}
-        <div className="h-6 bg-gray-800 flex items-center justify-center">
-          <div className="w-20 h-4 bg-gray-700 rounded-full"></div>
-        </div>
-
-        {/* Chat Container */}
-        <div className="h-[600px] flex flex-col">
-          {/* Header */}
-          <div className="p-4 bg-white border-b">
-            <h2 className="text-lg font-bold text-gray-800">{currentLocation.name}</h2>
-            <p className="text-sm text-gray-600">{currentLocation.description}</p>
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-white">
+      <Header />
+      
+      <div className="flex flex-col items-center p-2 sm:p-4">
+        <audio ref={audioRef} src={MSG_SOUND} preload="auto" />
+        <audio ref={messageSoundRef} src="/sounds/message.mp3" preload="auto" />
+        
+        {/* Completion Popup */}
+        <CompletionPopup />
+        
+        {/* Phone Frame */}
+        <div className="w-full max-w-md bg-white rounded-[32px] sm:rounded-[40px] shadow-xl overflow-hidden border-4 sm:border-8 border-gray-800 relative">
+          {/* Phone Notch */}
+          <div className="h-5 sm:h-6 bg-gray-800 flex items-center justify-center">
+            <div className="w-16 sm:w-20 h-3 sm:h-4 bg-gray-700 rounded-full"></div>
           </div>
 
-          {/* Progress Bar */}
-          <div className="p-4 bg-white border-b">
-            <Progress value={(visible / script.length) * 100} />
-          </div>
-
-          {/* Controls */}
-          <div className="bg-gray-100 p-3 flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <select
-                  className="rounded-md border px-2 py-1 text-sm bg-white"
-                  value={scriptIdx}
-                  onChange={e=>setScriptIdx(Number(e.target.value))}
-                >
-                  {currentLocation.scripts.map((opt, i) => (
-                    <option value={i} key={opt.id}>{opt.name}</option>
-                  ))}
-                </select>
-                <select
-                  className="rounded-md border px-2 py-1 text-sm bg-white"
-                  value={speed}
-                  onChange={e=>setSpeed(Number(e.target.value))}
-                >
-                  <option value={2}>Nhanh</option>
-                  <option value={4}>Thường</option>
-                  <option value={5}>Chậm</option>
-                </select>
-              </div>
-             <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAutoPlay(!autoPlay)}
-                  className="flex items-center gap-1"
-                >
-                  {autoPlay ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                  {autoPlay ? 'Tạm dừng' : 'Tự động'}
-                </Button>
-                <button
-                  className={`p-1.5 rounded-full ${enableSound?'bg-green-100 text-green-600':'bg-gray-200 text-gray-400'}`}
-                  title={enableSound?'Tắt âm':'Bật âm'}
-                  onClick={()=>setEnableSound(!enableSound)}
-                  type="button"
-                >🔊</button>
-              </div>
+          {/* Chat Container */}
+          <div className="h-[600px] sm:h-[600px] flex flex-col">
+            {/* Header */}
+            <div className="p-3 sm:p-4 bg-white border-b">
+              <h2 className="text-base sm:text-lg font-bold text-gray-800 truncate">{currentLocation.name}</h2>
+              <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{currentLocation.description}</p>
             </div>
-          </div>
 
-          {/* Messages */}
-          <div
-            ref={containerRef}
-            className="flex-1 overflow-y-auto scroll-smooth flex flex-col gap-1 px-2 py-4 bg-gray-50"
-          >
-            {renderMessages()}
-            {typing && (
-              <div className={`flex items-end gap-2 mt-2 ${getNextMessageRole() === "A" ? "justify-end" : "justify-start"}`}>
-                <img 
-                  src={script[visible%script.length]?.avatar} 
-                  alt="" 
-                  className="w-7 h-7 rounded-full border"
-                />
-                <div className="text-sm px-3 py-2 bg-gray-100 rounded-2xl">
-                  <span className="inline-flex">
-                    <span className="animate-bounce delay-100">.</span>
-                    <span className="animate-bounce delay-200">.</span>
-                    <span className="animate-bounce delay-300">.</span>
-                  </span>
+            {/* Progress Bar */}
+            <div className="p-3 sm:p-4 bg-white border-b">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-gray-600">Tiến độ</span>
+                <span className="text-xs text-gray-600">{visible}/{script.length}</span>
+              </div>
+              <Progress value={(visible / script.length) * 100} className="h-2" />
+            </div>
+
+            {/* Controls */}
+            <div className="bg-gray-100 p-2 sm:p-3 flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <select
+                    className="rounded-md border px-2 py-1.5 text-xs sm:text-sm bg-white flex-1 min-w-0"
+                    value={scriptIdx}
+                    onChange={e=>setScriptIdx(Number(e.target.value))}
+                  >
+                    {currentLocation.scripts.map((opt, i) => (
+                      <option value={i} key={opt.id}>{opt.name}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="rounded-md border px-2 py-1.5 text-xs sm:text-sm bg-white min-w-[80px]"
+                    value={speed}
+                    onChange={e=>setSpeed(Number(e.target.value))}
+                  >
+                    <option value={2}>Nhanh</option>
+                    <option value={4}>Thường</option>
+                    <option value={5}>Chậm</option>
+                  </select>
+                </div>
+               <div className="flex items-center gap-1 sm:gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAutoPlay(!autoPlay)}
+                    className="flex items-center gap-1 text-xs sm:text-sm px-2 sm:px-3 py-1.5 h-auto min-h-[36px]"
+                  >
+                    {autoPlay ? <Pause className="w-3 h-3 sm:w-4 sm:h-4" /> : <Play className="w-3 h-3 sm:w-4 sm:h-4" />}
+                    <span className="hidden sm:inline">{autoPlay ? 'Tạm dừng' : 'Tự động'}</span>
+                  </Button>
+                  <button
+                    className={`p-2 rounded-full min-h-[36px] min-w-[36px] flex items-center justify-center text-sm ${enableSound?'bg-green-100 text-green-600':'bg-gray-200 text-gray-400'}`}
+                    title={enableSound?'Tắt âm':'Bật âm'}
+                    onClick={()=>setEnableSound(!enableSound)}
+                    type="button"
+                  >🔊</button>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
 
-          {/* Bottom Controls */}
-          <div className="flex gap-2 p-2 border-t bg-gray-50 items-center">
-            {visible === script.length ? (
-              <div className="flex gap-2 w-full">
-                <Button
-                  variant="outline"
-                  onClick={resetChat}
-                  className="flex items-center gap-2"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Làm lại
-                </Button>
-                <Button
-                  onClick={handleComplete}
-                  className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700"
-                >
-                  Hoàn thành
-                  <CheckCircle className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : (
-              <>
-                <input
-                  type="text"
-                  disabled
-                  placeholder="Bạn không thể gửi tin nhắn ở chế độ mô phỏng"
-                  className="flex-1 px-3 py-1.5 rounded border bg-gray-100 text-sm shadow-sm"
-                />
-                <span className="text-2xl text-gray-400 cursor-not-allowed ml-2">➤</span>
-              </>
-            )}
+            {/* Messages */}
+            <div
+              ref={containerRef}
+              className="flex-1 overflow-y-auto scroll-smooth flex flex-col gap-1 px-2 sm:px-3 py-3 sm:py-4 bg-gray-50"
+            >
+              {renderMessages()}
+              {typing && (
+                <div className={`flex items-end gap-2 mt-2 ${getNextMessageRole() === "A" ? "justify-end" : "justify-start"}`}>
+                  <img 
+                    src={script[visible%script.length]?.avatar} 
+                    alt="" 
+                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border"
+                  />
+                  <div className="text-xs sm:text-sm px-2 sm:px-3 py-2 bg-gray-100 rounded-2xl">
+                    <span className="inline-flex">
+                      <span className="animate-bounce delay-100">.</span>
+                      <span className="animate-bounce delay-200">.</span>
+                      <span className="animate-bounce delay-300">.</span>
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Controls */}
+            <div className="flex gap-2 p-2 sm:p-3 border-t bg-gray-50 items-center">
+              {visible === script.length ? (
+                <div className="flex gap-2 w-full">
+                  <Button
+                    variant="outline"
+                    onClick={resetChat}
+                    className="flex items-center gap-2 text-xs sm:text-sm px-3 py-2 h-auto min-h-[44px]"
+                  >
+                    <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Làm lại</span>
+                    <span className="sm:hidden">↻</span>
+                  </Button>
+                  <Button
+                    onClick={handleComplete}
+                    className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-xs sm:text-sm min-h-[44px]"
+                  >
+                    <span>Hoàn thành</span>
+                    <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    disabled
+                    placeholder="Bạn không thể gửi tin nhắn ở chế độ mô phỏng"
+                    className="flex-1 px-3 py-2 rounded border bg-gray-100 text-xs sm:text-sm shadow-sm min-h-[44px]"
+                  />
+                  <div className="text-xl sm:text-2xl text-gray-400 cursor-not-allowed ml-2 min-h-[44px] flex items-center">➤</div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>

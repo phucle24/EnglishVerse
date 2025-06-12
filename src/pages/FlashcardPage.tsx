@@ -5,6 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Volume2, VolumeX, ChevronLeft, ChevronRight, Trophy, Star, Zap } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { updateFlashcardProgress, getWorkflowState } from "@/lib/workflow";
+import { getUser } from "@/lib/user";
 
 // Types
 type Category = 'restaurant' | 'travel' | 'business' | 'default';
@@ -19,18 +21,6 @@ interface Flashcard {
   difficulty: 'easy' | 'medium' | 'hard';
   mastered: boolean;
   phonetic?: string;
-}
-
-// Helper to get user info
-function getUser() {
-  try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (!user || !user.name) return null;
-    const avatar = user.avatar || 'https://ugc.same-assets.com/7zP4_sZbv34rMijHgssmeEzsEDxkK-cw.jpeg';
-    return { ...user, avatar };
-  } catch {
-    return null;
-  }
 }
 
 // Mock flashcards data
@@ -55,7 +45,86 @@ const FLASHCARDS: Flashcard[] = [
     difficulty: "medium",
     mastered: false
   },
-  // Add more flashcards here
+  {
+    id: 3,
+    word: "entree",
+    meaning: "Món chính",
+    example: "What entree would you recommend?",
+    image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=500",
+    category: "restaurant",
+    difficulty: "easy",
+    mastered: false
+  },
+  {
+    id: 4,
+    word: "dessert",
+    meaning: "Tráng miệng",
+    example: "Would you like to see the dessert menu?",
+    image: "https://images.unsplash.com/photo-1551024506-0bccd828d307?w=500",
+    category: "restaurant",
+    difficulty: "easy",
+    mastered: false
+  },
+  {
+    id: 5,
+    word: "bill",
+    meaning: "Hóa đơn",
+    example: "Can we have the bill, please?",
+    image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=500",
+    category: "restaurant",
+    difficulty: "easy",
+    mastered: false
+  },
+  {
+    id: 6,
+    word: "tip",
+    meaning: "Tiền boa",
+    example: "Is service charge included or should we leave a tip?",
+    image: "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=500",
+    category: "restaurant",
+    difficulty: "medium",
+    mastered: false
+  },
+  {
+    id: 7,
+    word: "vegetarian",
+    meaning: "Ăn chay",
+    example: "Do you have any vegetarian options?",
+    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500",
+    category: "restaurant",
+    difficulty: "medium",
+    mastered: false
+  },
+  {
+    id: 8,
+    word: "allergy",
+    meaning: "Dị ứng",
+    example: "I have a peanut allergy.",
+    image: "https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=500",
+    category: "restaurant",
+    difficulty: "hard",
+    mastered: false
+  },
+  {
+    id: 9,
+    word: "spicy",
+    meaning: "Cay",
+    example: "Is this dish very spicy?",
+    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=500",
+    category: "restaurant",
+    difficulty: "easy",
+    mastered: false
+  },
+  {
+    id: 10,
+    word: "chef",
+    meaning: "Đầu bếp",
+    example: "The chef's special is excellent today.",
+    image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500",
+    category: "restaurant",
+    difficulty: "easy",
+    mastered: false
+  }
 ];
 
 // Encouragement messages
@@ -136,6 +205,11 @@ export default function FlashcardPage() {
 
     // Check if all cards are remembered
     if (newRememberedCards.size === FLASHCARDS.length) {
+      // Update workflow progress to 100% for this location
+      if (locationId) {
+        updateFlashcardProgress(locationId, Array.from(newRememberedCards));
+      }
+
       // Show confetti
       confetti({
         particleCount: 100,
@@ -146,6 +220,11 @@ export default function FlashcardPage() {
       // Show congrats popup
       setShowCongrats(true);
     } else {
+      // Update partial progress
+      if (locationId) {
+        updateFlashcardProgress(locationId, Array.from(newRememberedCards));
+      }
+
       // Move to next card after delay
       setTimeout(() => {
         setShowEncouragement(false);
@@ -182,7 +261,7 @@ export default function FlashcardPage() {
 
   // Handle navigation from congrats popup
   const handleBackToJourney = () => {
-    navigate('/journeys');
+    navigate('/world-map');
   };
 
   const handleReview = () => {
